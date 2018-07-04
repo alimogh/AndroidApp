@@ -99,6 +99,8 @@
                         android:id="@+id/textView2"
                         android:text="Market API settings"
                         android:layout_marginTop="10dp"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"
                         android:layout_marginBottom="10dp"/>
 
                     <EditText
@@ -110,6 +112,8 @@
                         android:hint="Api key"
                         android:layout_marginTop="10dp"
                         android:layout_marginBottom="10dp"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"
                         />
 
                     <EditText
@@ -120,13 +124,17 @@
                         android:id="@+id/api_secret"
                         android:hint="Secret"
                         android:layout_marginTop="10dp"
-                        android:layout_marginBottom="10dp"/>
+                        android:layout_marginBottom="10dp"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"/>
 
                     <Button
                         android:text="Save"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:id="@+id/save_api_data"
+                        android:layout_marginLeft="10dp"
+                        android:layout_marginRight="10dp"
                         style="@style/Widget.AppCompat.Button.Colored" />
 
                     <CheckBox

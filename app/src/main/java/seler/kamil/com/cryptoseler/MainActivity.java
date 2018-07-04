@@ -10,9 +10,7 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -23,13 +21,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,26 +51,49 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        addButton = (Button) findViewById(R.id.add_button);
-        removeButton = (Button) findViewById(R.id.remove_button);
-        tabhost = (TabHost) findViewById(R.id.tabHost);
+        initComponents();
+        setTabHost();
+        setListeners();
 
-        api = (EditText)findViewById(R.id.api_key);
-        secret = (EditText)findViewById(R.id.api_secret);
-        confirm = (Button)findViewById(R.id.save_api_data);
+        this.row = new ArrayList<DataRow>();
+        tokens = new JSONArray();
 
-        list = (ListView) findViewById(R.id.listView);
+        loadData();
+    }
 
-        tabhost.setup();
-        TabHost.TabSpec ts = tabhost.newTabSpec("main");
-        ts.setContent(R.id.main);
-        ts.setIndicator("Main");
-        tabhost.addTab(ts);
+    private void loadData() {
+        try {
+            obj = new JSONObject(readData());
+            tokens = obj.getJSONArray("tokens");
 
-        ts = tabhost.newTabSpec("settings");
-        ts.setContent(R.id.settings);
-        ts.setIndicator("Settings");
-        tabhost.addTab(ts);
+            api.setText(obj.getString("key"));
+            secret.setText(obj.getString("secret"));
+
+            fillList(tokens);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void setListeners() {
+
+        confirm.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+
+                try {
+                    obj.remove("key");
+                    obj.remove("secret");
+                    obj.put("key", api.getText());
+                    obj.put("secret", secret.getText());
+                    saveData(obj);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+        });
 
         addButton.setOnClickListener(
                 new View.OnClickListener(){
@@ -97,14 +116,14 @@ public class MainActivity extends AppCompatActivity {
                             tokens.remove(indexToRemove);
                             JSONArray newArr = new JSONArray();
 
-                                try {
-                                    for(int i = 0; i < tokens.length(); i++)
-                                        if(i != indexToRemove)
-                                            newArr.put(tokens.get(i));
-                                    tokens=newArr;
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
+                            try {
+                                for(int i = 0; i < tokens.length(); i++)
+                                    if(i != indexToRemove)
+                                        newArr.put(tokens.get(i));
+                                tokens=newArr;
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
                             ada.notifyDataSetChanged();
                             indexToRemove = -1;
                             saveData(obj);
@@ -122,38 +141,31 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Log.d("Loading state: "," reading assets");
-        this.row = new ArrayList<DataRow>();
-        tokens = new JSONArray();
-        try {
-            obj = new JSONObject(readData());
-            tokens = obj.getJSONArray("tokens");
+    }
 
-            Log.d("dupaaaa", obj.toString());
-            api.setText(obj.getString("key"));
-            secret.setText(obj.getString("secret"));
-            fillList(tokens);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+    private void setTabHost() {
+        tabhost.setup();
+        TabHost.TabSpec ts = tabhost.newTabSpec("main");
+        ts.setContent(R.id.main);
+        ts.setIndicator("Main");
+        tabhost.addTab(ts);
 
-        confirm.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View v) {
+        ts = tabhost.newTabSpec("settings");
+        ts.setContent(R.id.settings);
+        ts.setIndicator("Settings");
+        tabhost.addTab(ts);
+    }
 
-                try {
-                    obj.remove("key");
-                    obj.remove("secret");
-                    obj.put("key", api.getText());
-                    obj.put("secret", secret.getText());
-                    saveData(obj);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+    private void initComponents(){
+        addButton = (Button) findViewById(R.id.add_button);
+        removeButton = (Button) findViewById(R.id.remove_button);
+        tabhost = (TabHost) findViewById(R.id.tabHost);
 
+        api = (EditText)findViewById(R.id.api_key);
+        secret = (EditText)findViewById(R.id.api_secret);
+        confirm = (Button)findViewById(R.id.save_api_data);
 
-            }
-        });
+        list = (ListView) findViewById(R.id.listView);
     }
 
     private void fillList(JSONArray array){
@@ -170,28 +182,6 @@ public class MainActivity extends AppCompatActivity {
         list.setAdapter(ada);
     }
 
-    View.OnClickListener saveApiData = new View.OnClickListener(){
-
-        @Override
-
-        public void onClick(View v) {
-            Log.d("dpaaaaaaaa","cefelellellelee");
-            try {
-                obj.remove("key");
-                obj.put("key", api.getText());
-
-                obj.remove("secret");
-                obj.put("secret", secret.getText());
-
-                saveData(obj);
-
-                Log.d("dpaaaaaaaa",obj.get("key")+ " "+obj.get("secret"));
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    };
 
     public void alert(){
 
@@ -251,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
         return object;
     }
 
-    public String readEmptyJSON() {
+    public String initJSONFile() {
         String json = null;
         try {
             InputStream is = getAssets().open("seler_settings.json");
@@ -284,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
             JSONObject empty = null;
             String emptyString= null;
             try {
-                emptyString = readEmptyJSON();
+                emptyString = initJSONFile();
                 empty = new JSONObject(emptyString);
                 saveData(empty);
                 Log.d("JSON init:", "clean settings init");
@@ -311,10 +301,5 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-    }
-
-    @Override
-    protected void onDestroy() {
-        saveData(obj);
     }
 }
