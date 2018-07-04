@@ -46,6 +46,9 @@ public class MainActivity extends AppCompatActivity {
     private int indexToRemove = -1;
     private JSONObject obj;
     private JSONArray tokens;
+    private EditText api;
+    private EditText secret;
+    private Button confirm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,10 +59,11 @@ public class MainActivity extends AppCompatActivity {
         removeButton = (Button) findViewById(R.id.remove_button);
         tabhost = (TabHost) findViewById(R.id.tabHost);
 
-        //ada = new SingleRow(this, row);
+        api = (EditText)findViewById(R.id.api_key);
+        secret = (EditText)findViewById(R.id.api_secret);
+        confirm = (Button)findViewById(R.id.save_api_data);
 
         list = (ListView) findViewById(R.id.listView);
-        //list.setAdapter(ada);
 
         tabhost.setup();
         TabHost.TabSpec ts = tabhost.newTabSpec("main");
@@ -117,16 +121,39 @@ public class MainActivity extends AppCompatActivity {
                 indexToRemove = position;
             }
         });
+
         Log.d("Loading state: "," reading assets");
         this.row = new ArrayList<DataRow>();
         tokens = new JSONArray();
         try {
             obj = new JSONObject(readData());
             tokens = obj.getJSONArray("tokens");
+
+            Log.d("dupaaaa", obj.toString());
+            api.setText(obj.getString("key"));
+            secret.setText(obj.getString("secret"));
             fillList(tokens);
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
+        confirm.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+
+                try {
+                    obj.remove("key");
+                    obj.remove("secret");
+                    obj.put("key", api.getText());
+                    obj.put("secret", secret.getText());
+                    saveData(obj);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+        });
     }
 
     private void fillList(JSONArray array){
@@ -142,6 +169,29 @@ public class MainActivity extends AppCompatActivity {
         ada = new SingleRow(this, row);
         list.setAdapter(ada);
     }
+
+    View.OnClickListener saveApiData = new View.OnClickListener(){
+
+        @Override
+
+        public void onClick(View v) {
+            Log.d("dpaaaaaaaa","cefelellellelee");
+            try {
+                obj.remove("key");
+                obj.put("key", api.getText());
+
+                obj.remove("secret");
+                obj.put("secret", secret.getText());
+
+                saveData(obj);
+
+                Log.d("dpaaaaaaaa",obj.get("key")+ " "+obj.get("secret"));
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    };
 
     public void alert(){
 
@@ -250,7 +300,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void saveData(JSONObject objToSave){
+    public void saveData(JSONObject objToSave){
         try {
             FileOutputStream fos = openFileOutput("seler_settings.json", Context.MODE_PRIVATE);
             fos.write(objToSave.toString().getBytes());
@@ -263,4 +313,8 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onDestroy() {
+        saveData(obj);
+    }
 }
