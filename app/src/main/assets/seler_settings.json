@@ -1,0 +1,7 @@
+{
+  "key": "a",
+  "secret": "a",
+  "tokens": [
+    {"token": "aaa", "buyPrice": 123}
+  ]
+}
