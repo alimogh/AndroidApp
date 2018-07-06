@@ -9,7 +9,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/tokenField"
-        android:layout_marginLeft="10dp"
+        android:layout_marginLeft="50dp"
         android:layout_weight="1" />
 
     <TextView
@@ -26,11 +26,4 @@
         android:id="@+id/actualPriceField"
         android:layout_weight="1" />
 
-    <Button
-        android:text="Sell"
-        android:layout_width="76dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/sellButton"
-        android:focusable="false"
-        style="@style/Widget.AppCompat.Button.Borderless" />
 </LinearLayout>

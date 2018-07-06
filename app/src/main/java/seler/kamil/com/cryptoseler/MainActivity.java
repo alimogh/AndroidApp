@@ -16,6 +16,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TabHost;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -29,6 +30,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import seler.kamil.com.cryptoseler.bittrex.BittrexRequests;
 import seler.kamil.com.cryptoseler.model.DataRow;
 
 public class MainActivity extends AppCompatActivity {
@@ -44,7 +46,10 @@ public class MainActivity extends AppCompatActivity {
     private JSONArray tokens;
     private EditText api;
     private EditText secret;
-    private Button confirm;
+    private Button saveApiData;
+    private BittrexRequests bittrexAPI;
+    private Button refreshPrices;
+    private Button sellButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
         tokens = new JSONArray();
 
         loadData();
+        refreshPrices();
     }
 
     private void loadData() {
@@ -66,8 +72,14 @@ public class MainActivity extends AppCompatActivity {
             obj = new JSONObject(readData());
             tokens = obj.getJSONArray("tokens");
 
-            api.setText(obj.getString("key"));
-            secret.setText(obj.getString("secret"));
+            String key = obj.getString("key");
+            String sec = obj.getString("secret");
+
+            api.setText(key);
+            secret.setText(sec);
+
+
+            bittrexAPI = new BittrexRequests(key, sec);
 
             fillList(tokens);
         } catch (JSONException e) {
@@ -75,9 +87,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void savedToast(){
+        Toast.makeText(this, "API data saved", Toast.LENGTH_SHORT).show();
+    }
+
+    private void pricesToast(){
+        Toast.makeText(this, "Prices updated", Toast.LENGTH_SHORT).show();
+    }
+
+
+    private void soldToast(String token, double amount, double price){
+        Toast.makeText(this, "Sell order set: "+amount+" "+token+"s for "+price+" btc each." , Toast.LENGTH_SHORT).show();
+    }
+
+
+    private void notSold(String message){
+        Toast.makeText(this, "Sell order not set: "+message, Toast.LENGTH_SHORT).show();
+    }
+
+
     private void setListeners() {
 
-        confirm.setOnClickListener(new View.OnClickListener(){
+        saveApiData.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
 
@@ -86,7 +117,9 @@ public class MainActivity extends AppCompatActivity {
                     obj.remove("secret");
                     obj.put("key", api.getText());
                     obj.put("secret", secret.getText());
-                    saveData(obj);
+                    saveSettingsData(obj);
+                    savedToast();
+
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -100,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onClick(View view) {
-                        alert();
+                        inputTokenAlertWindow();
                     }
                 }
         );
@@ -111,23 +144,7 @@ public class MainActivity extends AppCompatActivity {
                     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
                     @Override
                     public void onClick(View view) {
-                        if(indexToRemove > -1) {
-                            row.remove(indexToRemove);
-                            tokens.remove(indexToRemove);
-                            JSONArray newArr = new JSONArray();
-
-                            try {
-                                for(int i = 0; i < tokens.length(); i++)
-                                    if(i != indexToRemove)
-                                        newArr.put(tokens.get(i));
-                                tokens=newArr;
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                            ada.notifyDataSetChanged();
-                            indexToRemove = -1;
-                            saveData(obj);
-                        }
+                        removeTokenAlertWindow(row.get(indexToRemove).getToken());
                     }
                 }
 
@@ -140,6 +157,108 @@ public class MainActivity extends AppCompatActivity {
                 indexToRemove = position;
             }
         });
+
+        refreshPrices.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                refreshPrices();
+            }
+        });
+
+        sellButton.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View view) {
+            confirmSell(row.get(indexToRemove).getToken());
+            }
+        });
+
+    }
+
+    private void confirmSell(String token){
+        new AlertDialog.Builder(this)
+                .setTitle("Sell?")
+                .setMessage("Do you want to remove "+token+"?")
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        sellToken();
+                    }})
+                .setNegativeButton(android.R.string.no, null).show();
+    }
+    private void sellToken(){
+        new Thread(new Runnable() {
+            public void run() {
+
+                try {
+                    JSONObject o = (JSONObject) tokens.get(indexToRemove);
+                    final DataRow r = row.get(indexToRemove);
+                    final JSONObject sellResult = bittrexAPI.sellOrder(r.getToken(), r.getAmount(), r.getActualPrice());
+                    final boolean result = sellResult.getBoolean("success");
+
+
+                    list.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if(result) {
+                                removeToken();
+                                soldToast(r.getToken(), r.getAmount(), r.getActualPrice());
+                                ada.notifyDataSetChanged();
+                            }else {
+                                try {
+                                    notSold(sellResult.getString("message"));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+
+                        }
+                    });
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+        }).start();
+    }
+
+    private void removeTokenAlertWindow(String token){
+        new AlertDialog.Builder(this)
+                .setTitle("Remove?")
+                .setMessage("Do you want to remove "+token+"?")
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        removeToken();
+                        ada.notifyDataSetChanged();
+                    }})
+                .setNegativeButton(android.R.string.no, null).show();
+    }
+
+    private void removeToken(){
+        row.remove(indexToRemove);
+        //tokens.remove(indexToRemove);
+        JSONArray newArr = new JSONArray();
+
+        try {
+            for(int i = 0; i < tokens.length(); i++)
+                if(i != indexToRemove)
+                    newArr.put(tokens.get(i));
+            tokens=newArr;
+            obj.remove("tokens");
+            obj.put("tokens", newArr);
+            saveSettingsData(obj);
+
+            indexToRemove = -1;
+
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -163,7 +282,10 @@ public class MainActivity extends AppCompatActivity {
 
         api = (EditText)findViewById(R.id.api_key);
         secret = (EditText)findViewById(R.id.api_secret);
-        confirm = (Button)findViewById(R.id.save_api_data);
+        saveApiData = (Button)findViewById(R.id.save_api_data);
+        refreshPrices = (Button)findViewById(R.id.refresh_prices_button);
+        sellButton = (Button)findViewById(R.id.sell_button);
+
 
         list = (ListView) findViewById(R.id.listView);
     }
@@ -172,18 +294,19 @@ public class MainActivity extends AppCompatActivity {
         for(int i = 0; i < array.length(); i++){
             try {
                 JSONObject item = array.getJSONObject(i);
-                row.add(new DataRow(item.getString("token"), item.getInt("buyPrice")));
+                row.add(new DataRow(item.getString("token"), item.getInt("buyPrice"), item.getInt("amount")));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
 
         }
         ada = new SingleRow(this, row);
+        ada.setBittrexApi(bittrexAPI);
         list.setAdapter(ada);
     }
 
 
-    public void alert(){
+    public void inputTokenAlertWindow(){
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add token");
@@ -199,16 +322,22 @@ public class MainActivity extends AppCompatActivity {
         final EditText priceInput = new EditText(this);
         priceInput.setHint("Buy price (SAT)");
         priceInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+        final EditText amountInput = new EditText(this);
+        amountInput.setHint("amount");
+        amountInput.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
         //builder.setView(priceInput);
 
         lay.addView(tokenInput);
         lay.addView(priceInput);
+        lay.addView(amountInput);
         builder.setView(lay);
 
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                addToken(tokenInput.getText().toString().toUpperCase(), Integer.parseInt(priceInput.getText().toString()));
+                if(tokenInput.getText().toString().trim() != "" && priceInput.getText().toString().trim() != "" && amountInput.getText().toString().trim() != "")
+                    addToken(tokenInput.getText().toString().toUpperCase(), Integer.parseInt(priceInput.getText().toString()), Double.parseDouble(amountInput.getText().toString()));
 
             }
         });
@@ -222,19 +351,55 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private void addToken(String token, int price){
-        JSONObject newToken = writeJSON(token, price);
+
+   /* private double getTokenPrice(String token){
+        double sellPrice = bittrexAPI.getSellPrice(token);
+        return sellPrice;
+    }
+*/
+
+    private void refreshPrices(){
+
+        new Thread(new Runnable() {
+            public void run() {
+                Log.d("ACTION", "getting prices");
+                for(int i = 0; i < row.size(); i ++){
+                    String token = row.get(i).getToken();
+                    double price = bittrexAPI.getSellPrice(token);
+                    int actualPriceSAT = (int)(price*100000000);
+                    DataRow item = (DataRow) ada.getItem(i);
+                    item.setActualPriceSAT(actualPriceSAT);
+                    item.setActualPrice(price);
+
+                    Log.d("Items******", ""+item);
+                }
+
+                list.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d("PRICES LIST", "updated");
+                        ada.notifyDataSetChanged();
+                        pricesToast();
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void addToken(String token, int price, double amount){
+        JSONObject newToken = tokenJSON(token, price, amount);
         tokens.put(newToken);
-        row.add(new DataRow(token, price));
-        saveData(obj);
+        row.add(new DataRow(token, price, amount));
+        saveSettingsData(obj);
         ada.notifyDataSetChanged();
     }
 
-    public JSONObject writeJSON(String token, int buyPrice) {
+    public JSONObject tokenJSON(String token, int buyPrice, double amount) {
         JSONObject object = new JSONObject();
         try {
             object.put("token", token);
             object.put("buyPrice", buyPrice);
+            object.put("amount", amount);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -276,7 +441,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 emptyString = initJSONFile();
                 empty = new JSONObject(emptyString);
-                saveData(empty);
+                saveSettingsData(empty);
                 Log.d("JSON init:", "clean settings init");
             } catch (JSONException e1) {
                 return emptyString;
@@ -290,7 +455,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void saveData(JSONObject objToSave){
+    public void saveSettingsData(JSONObject objToSave){
         try {
             FileOutputStream fos = openFileOutput("seler_settings.json", Context.MODE_PRIVATE);
             fos.write(objToSave.toString().getBytes());
@@ -300,6 +465,8 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
+
+
+
 }

@@ -2,6 +2,6 @@
   "key": "a",
   "secret": "a",
   "tokens": [
-    {"token": "aaa", "buyPrice": 123}
+    {"token": "aaa", "buyPrice": 123, "amount": 1.123}
   ]
 }
