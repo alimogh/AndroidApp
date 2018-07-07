@@ -57,8 +57,8 @@
                             android:layout_height="wrap_content"
                             android:id="@+id/sell_button"
                             android:layout_weight="1"
-                            android:layout_marginRight="10dp"
-                            android:layout_marginLeft="15dp"
+                            android:layout_marginRight="20dp"
+                            android:layout_marginLeft="10dp"
                             style="@style/Widget.AppCompat.Button.Borderless.Colored" />
 
                         <Button
@@ -87,7 +87,7 @@
                             android:id="@+id/refresh_prices_button"
                             android:layout_weight="1"
                             android:layout_marginRight="10dp"
-                            android:layout_marginLeft="15dp"
+                            android:layout_marginLeft="10dp"
                             style="@style/Widget.AppCompat.Button.Borderless.Colored" />
                     </LinearLayout>
 
@@ -158,27 +158,6 @@
                         android:layout_marginRight="10dp"
                         style="@style/Widget.AppCompat.Button.Colored" />
 
-                    <EditText
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:ems="10"
-                        android:text="5"
-                        android:hint="Refresh (min)"
-                        android:id="@+id/refresh_time_field" />
-
-                    <CheckBox
-                        android:text="Enable auto trader"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:id="@+id/auto_trader" />
-
-                    <EditText
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="numberDecimal"
-                        android:ems="10"
-                        android:id="@+id/editText" />
 
 
                 </LinearLayout>

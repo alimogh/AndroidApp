@@ -53,8 +53,15 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setLogo(R.mipmap.icon);
+        getSupportActionBar().setDisplayUseLogoEnabled(true);
 
         initComponents();
         setTabHost();
@@ -178,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
     private void confirmSell(String token){
         new AlertDialog.Builder(this)
                 .setTitle("Sell?")
-                .setMessage("Do you want to remove "+token+"?")
+                .setMessage("Do you want to sell "+token+"?")
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
 
